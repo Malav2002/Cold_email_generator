@@ -1,0 +1,10 @@
+langchain
+python-dotenv
+ipykernel
+streamlit
+langchain-community
+langchain-groq
+chromadb
+beautifulsoup4
+pandas
+PyPDF2
