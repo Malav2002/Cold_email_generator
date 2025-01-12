@@ -1,5 +1,7 @@
 import streamlit as st
 import os
+from flask import Flask, request, jsonify
+from streamlit.web.server.server import Server
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_community.document_loaders import WebBaseLoader
@@ -164,4 +166,42 @@ if st.button("Generate Cold Email"):
 
     else:
         st.warning("Please upload a resume and provide a job description link.")
+
+app = Flask(__name__)
+
+@app.route("/api/generate_email", methods=["POST"])
+def generate_email():
+    try:
+        data = request.json
+        job_description_link = data.get("job_description_link")
+        resume_file_content = data.get("resume_file_content")
+
+        # Run backend logic here
+        collection = inital_setup()
+        job_data = get_web_data(job_description_link)
+
+        if job_data[0] == 0:
+            return jsonify({"error": job_data[1]}), 400
+
+        llm = get_llm_model()
+        response = get_job_description_json(job_data=job_data[1], llm=llm)
+
+        links = get_links(response['skills'], collection)
+        cold_email = get_cold_email(response, links, llm)
+
+        return jsonify({"cold_email": cold_email})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Start Flask server alongside Streamlit
+def start_flask_app():
+    import threading
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=True)).start()
+
+start_flask_app()
+
+# Streamlit content remains as-is
+st.title("Cold Email Generator")
+st.write("Your Streamlit frontend is available here.")
 
