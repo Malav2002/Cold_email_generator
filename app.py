@@ -11,6 +11,11 @@ import chromadb
 import uuid
 import pandas as pd
 import PyPDF2
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+
+
 
 
 st.title("Cold Email Generator")
@@ -21,7 +26,7 @@ def inital_setup():
     
     load_dotenv()
 
-    df = pd.read_csv("my_portfolio.csv")
+    df = pd.read_csv("/Users/malavxpatel/cold-email-generator/my_portfolio.csv")
 
     chroma_client = chromadb.PersistentClient()
     collection = chroma_client.get_or_create_collection(name="TechStack")
@@ -84,16 +89,14 @@ def get_links(skills,collection):
     )['metadatas']
     return links
 
-def get_resume_content(pdf_path):
+def get_resume_content(uploaded_file):
     try:
-        # Open the uploaded file as a binary stream
         pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
+        text = "".join([page.extract_text() for page in pdf_reader.pages])
         return text
     except Exception as e:
         return f"Error while reading PDF: {e}"
+
 
 def get_cold_email(output,links,llm,):
     prompt_email = PromptTemplate.from_template(
@@ -167,41 +170,31 @@ if st.button("Generate Cold Email"):
     else:
         st.warning("Please upload a resume and provide a job description link.")
 
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173"])  # This enables CORS for all domains (e.g., localhost:5173)
 
-@app.route("/api/generate_email", methods=["POST"])
+@app.route('/api/generate_email', methods=['OPTIONS', 'POST'])
 def generate_email():
-    try:
-        data = request.json
-        job_description_link = data.get("job_description_link")
-        resume_file_content = data.get("resume_file_content")
+    if request.method == 'OPTIONS':
+        # Handle preflight requests (CORS)
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
 
-        # Run backend logic here
-        collection = inital_setup()
-        job_data = get_web_data(job_description_link)
+    # Your logic for generating the cold email
+    job_description_link = request.json.get('job_description_link')
+    resume_file_content = request.json.get('resume_file_content')
+    
+    # Placeholder logic for email generation
+    cold_email = f"Job: {job_description_link}\nResume: {resume_file_content}"
 
-        if job_data[0] == 0:
-            return jsonify({"error": job_data[1]}), 400
+    return jsonify({"cold_email": cold_email})
 
-        llm = get_llm_model()
-        response = get_job_description_json(job_data=job_data[1], llm=llm)
-
-        links = get_links(response['skills'], collection)
-        cold_email = get_cold_email(response, links, llm)
-
-        return jsonify({"cold_email": cold_email})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# Start Flask server alongside Streamlit
-def start_flask_app():
-    import threading
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=True)).start()
-
-start_flask_app()
-
-# Streamlit content remains as-is
-st.title("Cold Email Generator")
-st.write("Your Streamlit frontend is available here.")
-
+if __name__ == '__main__':
+    app.run(port=5000)

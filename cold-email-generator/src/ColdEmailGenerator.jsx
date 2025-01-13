@@ -20,21 +20,21 @@ const ColdEmailGenerator = () => {
       setErrorMessage("Please provide both a job description link and a resume file.");
       return;
     }
-
+  
     setLoading(true);
     setErrorMessage("");
     setColdEmail("");
-
+  
     const reader = new FileReader();
     reader.onload = async (event) => {
-      const resumeFileContent = event.target.result;
-
+      const resumeFileContent = event.target.result.split(',')[1]; // Get base64 string (excluding the prefix)
+  
       try {
         const response = await axios.post("http://localhost:5000/api/generate_email", {
           job_description_link: jobDescriptionLink,
           resume_file_content: resumeFileContent,
         });
-
+  
         if (response.data.cold_email) {
           setColdEmail(response.data.cold_email);
         } else {
@@ -46,9 +46,10 @@ const ColdEmailGenerator = () => {
         setLoading(false);
       }
     };
-
-    reader.readAsText(resumeFile);
+  
+    reader.readAsDataURL(resumeFile);  // Read file as base64
   };
+  
 
   return (
     <div style={{ margin: "20px" }}>
