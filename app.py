@@ -1,3 +1,4 @@
+import logging
 import streamlit as st
 import os
 from flask import Flask, request, jsonify
@@ -11,9 +12,7 @@ import chromadb
 import uuid
 import pandas as pd
 import PyPDF2
-from flask import Flask, request, jsonify
 from flask_cors import CORS
-
 
 
 
@@ -91,14 +90,26 @@ def get_links(skills,collection):
 
 def get_resume_content(uploaded_file):
     try:
+        # Read the PDF file using PyPDF2
         pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        text = "".join([page.extract_text() for page in pdf_reader.pages])
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
         return text
     except Exception as e:
+        logging.error(f"Error while reading PDF: {e}")
         return f"Error while reading PDF: {e}"
 
+# def get_resume_content(uploaded_file):
+#     try:
+#         pdf_reader = PyPDF2.PdfReader(uploaded_file)
+#         text = "".join([page.extract_text() for page in pdf_reader.pages])
+#         return text
+#     except Exception as e:
+#         return f"Error while reading PDF: {e}"
 
-def get_cold_email(output,links,llm,):
+
+def get_cold_email(output,links,llm,pdf_text):
     prompt_email = PromptTemplate.from_template(
         """
         ### JOB DESCRIPTION:
@@ -112,8 +123,10 @@ def get_cold_email(output,links,llm,):
         job descriton.
         Your job is to write a cold email to the client regarding the job mentioned above describing the capability 
         in fulfilling their needs.
-        Also add the most relevant ones from the following links to showcase Atliq's portfolio: {link_list}
-        Remember you are Mohan, BDE at AtliQ. 
+        Draft a very professional cold-email, with minimum 3 paragraphs, and at the end of the email also add 
+        the name of the user as mentioned in the resume.
+        Also add the most relevant ones from the following links to showcase my portfolio: {link_list} 
+        use proper punchuation adn grammer.
         Do not provide a preamble.
         ### EMAIL (NO PREAMBLE):
         
@@ -171,30 +184,72 @@ if st.button("Generate Cold Email"):
         st.warning("Please upload a resume and provide a job description link.")
 
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])  # This enables CORS for all domains (e.g., localhost:5173)
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
+# Initialize collection
+collection = inital_setup()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 @app.route('/api/generate_email', methods=['OPTIONS', 'POST'])
 def generate_email():
     if request.method == 'OPTIONS':
-        # Handle preflight requests (CORS)
+        # Preflight response
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         return response
 
-    # Your logic for generating the cold email
-    job_description_link = request.json.get('job_description_link')
-    resume_file_content = request.json.get('resume_file_content')
-    
-    # Placeholder logic for email generation
-    cold_email = f"Job: {job_description_link}\nResume: {resume_file_content}"
+    try:
+        # Get data from the request
+        job_description_link = request.form.get('job_description_link', '')
+        resume_file = request.files.get('resume_file_content')
 
-    return jsonify({"cold_email": cold_email})
+        # Validate input
+        if not job_description_link:
+            return jsonify({"error": "Job description link is required"}), 400
+        if not resume_file:
+            return jsonify({"error": "Resume file is required"}), 400
+
+        # Step 1: Scrape job description
+        logging.info("Scraping job description...")
+        job_data = get_web_data(job_description_link)
+        if job_data[0] == 0:
+            return jsonify({"error": f"Failed to scrape job description: {job_data[1]}"}), 400
+
+        job_description = job_data[1]
+
+        # Step 2: Initialize LLM
+        logging.info("Initializing LLM model...")
+        llm = get_llm_model()
+
+        # Step 3: Extract job description in JSON format
+        logging.info("Extracting job description in JSON format...")
+        job_description_json = get_job_description_json(job_data=job_description, llm=llm)
+
+        # Step 4: Query links based on extracted skills
+        logging.info("Querying links based on extracted skills...")
+        links = get_links(job_description_json['skills'], collection)
+
+        # Step 5: Extract resume text from the uploaded PDF
+        logging.info("Extracting resume content from PDF...")
+        pdf_text = get_resume_content(resume_file)
+
+        # Step 6: Generate cold email
+        logging.info("Generating cold email...")
+        cold_email = get_cold_email(job_description_json, links, llm, pdf_text)
+
+        # Step 7: Return the generated cold email
+        response = jsonify({"cold_email": cold_email})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+        return response
+
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}", exc_info=True)
+        return jsonify({"error": f"An internal server error occurred: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=3000)

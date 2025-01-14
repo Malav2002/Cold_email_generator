@@ -20,85 +20,135 @@ const ColdEmailGenerator = () => {
       setErrorMessage("Please provide both a job description link and a resume file.");
       return;
     }
-  
+
     setLoading(true);
     setErrorMessage("");
     setColdEmail("");
-  
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const resumeFileContent = event.target.result.split(',')[1]; // Get base64 string (excluding the prefix)
-  
-      try {
-        const response = await axios.post("http://localhost:5000/api/generate_email", {
-          job_description_link: jobDescriptionLink,
-          resume_file_content: resumeFileContent,
-        });
-  
-        if (response.data.cold_email) {
-          setColdEmail(response.data.cold_email);
-        } else {
-          setErrorMessage("Failed to generate a cold email. Please try again.");
-        }
-      } catch (error) {
-        setErrorMessage(error.response?.data?.error || "An error occurred while generating the email.");
-      } finally {
-        setLoading(false);
+
+    // Create a FormData object to send the file
+    const formData = new FormData();
+    formData.append("job_description_link", jobDescriptionLink);
+    formData.append("resume_file_content", resumeFile);
+
+    try {
+      const response = await axios.post("http://localhost:3000/api/generate_email", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data && response.data.cold_email) {
+        setColdEmail(response.data.cold_email);
+      } else {
+        setErrorMessage("Failed to generate a cold email. Please try again.");
       }
-    };
-  
-    reader.readAsDataURL(resumeFile);  // Read file as base64
+    } catch (error) {
+      console.error("Error generating email:", error);
+      const errorMsg =
+        error.response?.data?.error ||
+        "An error occurred while generating the email. Please check your network or backend server.";
+      setErrorMessage(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
-  
 
   return (
-    <div style={{ margin: "20px" }}>
-      <h1>Cold Email Generator</h1>
-      <div style={{ marginBottom: "15px" }}>
-        <label>Job Description Link:</label>
-        <input
-          type="text"
-          placeholder="Enter job description link"
-          value={jobDescriptionLink}
-          onChange={(e) => setJobDescriptionLink(e.target.value)}
-          style={{ width: "100%", padding: "8px", marginTop: "5px" }}
-        />
-      </div>
-      <div style={{ marginBottom: "15px" }}>
-        <label>Resume File (PDF):</label>
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={handleFileChange}
-          style={{ width: "100%", padding: "8px", marginTop: "5px" }}
-        />
-      </div>
-      <button
-        onClick={generateColdEmail}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "white",
+        fontFamily: "'Roboto', sans-serif",
+        padding: "20px",
+        color: "black",
+      }}
+    >
+      <div
         style={{
-          padding: "10px 20px",
-          backgroundColor: "#007BFF",
-          color: "#FFF",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
+          maxWidth: "600px",
+          margin: "0 auto",
+          background: "#222222",
+          padding: "50px",
+          borderRadius: "10px",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
         }}
       >
-        {loading ? "Generating..." : "Generate Cold Email"}
-      </button>
-
-      {errorMessage && (
-        <div style={{ color: "red", marginTop: "15px" }}>
-          <strong>Error:</strong> {errorMessage}
+        <h1 style={{ textAlign: "center", marginBottom: "20px", color: "#2EA55F" }}>Cold Email Generator</h1>
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ fontWeight: "bold", marginBottom: "5px", display: "block", color: "white" }}>Job Description Link:</label>
+          <input
+            type="text"
+            placeholder="Enter job description link"
+            value={jobDescriptionLink}
+            onChange={(e) => setJobDescriptionLink(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px",
+              border: "1px solid #CCC",
+              borderRadius: "5px",
+              background: "#FFF",
+              color: "#333",
+            }}
+          />
         </div>
-      )}
-
-      {coldEmail && (
-        <div style={{ marginTop: "20px", padding: "10px", border: "1px solid #CCC", borderRadius: "5px" }}>
-          <h2>Generated Cold Email:</h2>
-          <p>{coldEmail}</p>
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ fontWeight: "bold", marginBottom: "5px", display: "block", color: "white" }}>Resume File (PDF):</label>
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+            style={{
+              width: "100%",
+              padding: "10px",
+              border: "1px solid #CCC",
+              borderRadius: "5px",
+              background: "#FFF",
+              color: "#333",
+            }}
+          />
         </div>
-      )}
+        <button
+          onClick={generateColdEmail}
+          style={{
+            width: "100%",
+            padding: "15px",
+            backgroundColor: "white",
+            color: "#2EA55F",
+            border: "none",
+            borderRadius: "50px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            transition: "background-color 0.3s ease",
+          }}
+          onMouseEnter={(e) => (e.target.style.backgroundColor = "#2C974B",e.target.style.color = "white")}
+          onMouseLeave={(e) => (e.target.style.backgroundColor = "white",e.target.style.color = "#2EA55F")}
+          disabled={loading}
+        >
+          {loading ? "Generating..." : "Generate Cold Email"}
+        </button>
+
+        {errorMessage && (
+          <div style={{ color: "red", marginTop: "15px" }}>
+            <strong>Error:</strong> {errorMessage}
+          </div>
+        )}
+
+        {coldEmail && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "15px",
+              border: "1px solid #CCC",
+              borderRadius: "10px",
+              background: "#F9F9F9",
+              color: "#333",
+            }}
+          >
+            <h2 style={{ marginBottom: "10px",color: "#2EA55F" }}>Generated Cold Email:</h2>
+            <p>{coldEmail}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
