@@ -31,11 +31,15 @@ const ColdEmailGenerator = () => {
     formData.append("resume_file_content", resumeFile);
 
     try {
-      const response = await axios.post("http://localhost:3000/api/generate_email", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        "https://cold-email-generator-m9lk.onrender.com/api/generate_email",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       if (response.data && response.data.cold_email) {
         setColdEmail(response.data.cold_email);
@@ -120,8 +124,8 @@ const ColdEmailGenerator = () => {
             cursor: "pointer",
             transition: "background-color 0.3s ease",
           }}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = "#2C974B",e.target.style.color = "white")}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = "white",e.target.style.color = "#2EA55F")}
+          onMouseEnter={(e) => ((e.target.style.backgroundColor = "#2C974B"), (e.target.style.color = "white"))}
+          onMouseLeave={(e) => ((e.target.style.backgroundColor = "white"), (e.target.style.color = "#2EA55F"))}
           disabled={loading}
         >
           {loading ? "Generating..." : "Generate Cold Email"}
@@ -144,7 +148,7 @@ const ColdEmailGenerator = () => {
               color: "#333",
             }}
           >
-            <h2 style={{ marginBottom: "10px",color: "#2EA55F" }}>Generated Cold Email:</h2>
+            <h2 style={{ marginBottom: "10px", color: "#2EA55F" }}>Generated Cold Email:</h2>
             <p>{coldEmail}</p>
           </div>
         )}
