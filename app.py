@@ -252,4 +252,5 @@ def generate_email():
 
 
 if __name__ == '__main__':
-    app.run(port=3000)
+    port = int(os.environ.get('PORT', 3000))  # Default to 3000 for local testing
+    app.run(host='0.0.0.0', port=port)
