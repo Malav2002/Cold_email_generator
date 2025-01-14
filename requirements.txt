@@ -8,3 +8,5 @@ chromadb
 beautifulsoup4
 pandas
 PyPDF2
+flask
+flask-cors
