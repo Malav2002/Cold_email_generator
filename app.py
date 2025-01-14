@@ -25,7 +25,7 @@ def inital_setup():
     
     load_dotenv()
 
-    df = pd.read_csv("/Users/malavxpatel/cold-email-generator/my_portfolio.csv")
+    df = pd.read_csv("my_portfolio.csv")
 
     chroma_client = chromadb.PersistentClient()
     collection = chroma_client.get_or_create_collection(name="TechStack")
