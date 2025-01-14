@@ -184,20 +184,20 @@ if st.button("Generate Cold Email"):
         st.warning("Please upload a resume and provide a job description link.")
 
 
-app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+from flask_cors import CORS
 
-# Initialize collection
-collection = inital_setup()
+app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "https://coldemail.netlify.app"}})
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
+
 @app.route('/api/generate_email', methods=['OPTIONS', 'POST'])
 def generate_email():
     if request.method == 'OPTIONS':
         # Preflight response
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+        response.headers.add('Access-Control-Allow-Origin', 'https://coldemail.netlify.app')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         return response
@@ -243,12 +243,13 @@ def generate_email():
 
         # Step 7: Return the generated cold email
         response = jsonify({"cold_email": cold_email})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+        response.headers.add('Access-Control-Allow-Origin', 'https://coldemail.netlify.app')
         return response
 
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}", exc_info=True)
         return jsonify({"error": f"An internal server error occurred: {str(e)}"}), 500
+
 
 
 if __name__ == '__main__':
