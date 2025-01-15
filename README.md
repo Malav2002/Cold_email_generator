@@ -18,6 +18,8 @@ A web-based cold email generator powered by LLAMA-3.1, Streamlit, and Chroma DB.
 - Streamlit
 - BeautifulSoup (for web scraping job descriptions)
 - Requests (for making HTTP requests to fetch job descriptions)
+- Flask
+- Flask-cors
 
 ## Installation
 
