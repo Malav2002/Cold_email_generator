@@ -27,4 +27,5 @@ A web-based cold email generator powered by LLAMA-3.1, Streamlit, and Chroma DB.
 
    ```bash
    https://github.com/Malav2002/Cold_email_generator.git
-   cd cold-email-generator
+   cd Cold_email_generator
+   
